@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 import requests
 
 app = Flask(__name__, static_folder='/Users/noah/soren')
@@ -15,12 +15,10 @@ def comments():
 def passage():
   r = requests.get('http://www.esvapi.org/v2/rest/passageQuery', params={
       "key": "IP",
-      "passage": "Genesis 1",
+      "passage": request.args.get('q'),
       "include-passage-references": "false",
       "include-footnotes": "false"
     })
-  print '======='
-  print r.text
   return r.text
 
 if __name__ == "__main__":

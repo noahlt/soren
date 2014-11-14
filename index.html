@@ -3,10 +3,25 @@
 <html>
   <head>
     <title>Hello React</title>
-    <script src="http://fb.me/react-0.11.2.js"></script>
-    <script src="http://fb.me/JSXTransformer-0.11.2.js"></script>
+    <script src="http://fb.me/react-0.12.0.js"></script>
+    <script src="http://fb.me/JSXTransformer-0.12.0.js"></script>
     <script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/showdown/0.3.1/showdown.min.js"></script>
+    <style type="text/css">
+    .chapter-num, .verse-num {
+      font-family: sans-serif;
+      background-color: #444;
+      color: #aaa;
+      padding-left: 3px; /* hack to account for &nbsp; after verse-num */
+      /*border-right: 3px solid #fff; /* hack to add a fake space */
+      border-radius: 5px;
+      margin-right: 3px;
+      font-size: 12px;
+    }
+    .passageContent {
+      width: 400px;
+    }
+    </style>
   </head>
   <body>
     <div id="soren"></div>
@@ -106,19 +121,15 @@
 
       var BibleViewer = React.createClass({
         getInitialState: function() {
-          return {passageHtml: '<span>loading...</span>'};
+          return {
+            passageHtml: '<span>type a passage to look up above</span>',
+          };
         },
-        render: function() {
-          return (
-            <div className="bibleViewer">
-              <h2 className="passageLabel">{this.props.passage}</h2>
-              <div className="passageContent" dangerouslySetInnerHTML={{__html: this.state.passageHtml}}></div>
-            </div>
-          );
-        },
-        componentDidMount: function() {
+        lookupPassage: function(passageQuery) {
+          console.log("lookupPassage", passageQuery);
           $.ajax({
             url: '/passageQuery',
+            data: {q: passageQuery},
             dataType: 'html',
             success: function(data) {
               this.setState({passageHtml: data});
@@ -127,17 +138,45 @@
               console.error('esv failure', this.esvApiUrl, status, err.toString());
             }.bind(this)
           });
-          return;
+        },
+        render: function() {
+          return (
+            <div className="bibleViewer">
+              <BibleNav lookupPassage={this.lookupPassage} />
+              <div className="passageContent" dangerouslySetInnerHTML={{__html: this.state.passageHtml}}></div>
+            </div>
+          );
+        },
+        componentDidUpdate: function() {
+          $(this.getDOMNode()).find('.chapter-num,.verse-num').click(function() {
+            // this is a temporary hack until we do server-side esv xml processing
+            alert("hi");
+          });
         }
       });
 
-      React.renderComponent(
-        <BibleViewer passage="John 3:16" />,
+      var BibleNav = React.createClass({
+        handleKey: function(e) {
+          if (e.which == 13) { // 13 = enter
+            e.preventDefault();
+            var passageQuery = this.refs.passageInput.getDOMNode().value.trim();
+            this.props.lookupPassage(passageQuery);
+          }
+        },
+        render: function() {
+          return (
+            <input type="text" ref="passageInput" className="passageLabel" onKeyPress={this.handleKey} />
+          );
+        }
+      });
+
+      React.render(
+        <BibleViewer />,
         document.getElementById('soren'));
 
-      React.renderComponent(
+      /*React.render(
         <CommentBox url="comments.json" pollInterval={2000} />,
-        document.getElementById('comments'));
+        document.getElementById('comments'));*/
     </script>
   </body>
 </html>
