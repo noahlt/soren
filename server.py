@@ -17,9 +17,13 @@ def passage():
       "key": "IP",
       "passage": request.args.get('q'),
       "include-passage-references": "false",
-      "include-footnotes": "false"
+      "include-xml-declaration": "true",
+      "include-footnotes": "false",
+      "include-line-breaks": "false",
+      "include-simple-entities": "true",
+      "output-format": "crossway-xml-1.0"
     })
-  return r.text
+  return r.text.replace('<!DOCTYPE crossway-bible SYSTEM "http://www.gnpcb.org/esv/share/schemas/crossway.base.entities.dtd">', '')
 
 if __name__ == "__main__":
   app.run()

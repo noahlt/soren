@@ -130,9 +130,29 @@
           $.ajax({
             url: '/passageQuery',
             data: {q: passageQuery},
-            dataType: 'html',
+            dataType: 'xml',
             success: function(data) {
-              this.setState({passageHtml: data});
+              var $xml = $(data);
+              $xml.find("marker").remove();
+              $xml.find("heading").remove();
+              $xml.find("end-paragraph").remove();
+              $xml.find("footnote").remove();
+              var paragraphs = [];
+              console.log($xml.find("verse-unit"));
+              $xml.find("verse-unit").each(function (i, verseNode) {
+                var $verse = $(verseNode);
+                if ($verse.find("begin-paragraph").length > 0 || paragraphs.length == 0) {
+                  paragraphs.push([]);
+                }
+                var verse = {
+                  num: $verse.find('verse-num').remove().text(),
+                  text: $verse.text()
+                }
+                paragraphs[paragraphs.length - 1].push(verse)
+                return;
+              });
+              console.log(paragraphs);
+              this.setState({passageHtml: '<span>hi</span>'});
             }.bind(this),
             error: function(xhr, status, err) {
               console.error('esv failure', this.esvApiUrl, status, err.toString());
