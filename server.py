@@ -82,13 +82,11 @@ def commentary():
     verse = test_int(request.form["verse"])
 
     if len(select_commentary(book, chapter, verse)) == 0:
-      print 'INSERTING'
       get_db().execute('INSERT INTO commentary VALUES(?, ?, ?, ?)',
                        (book, chapter, verse, request.form["text"]))
       get_db().commit()
       return 'ok'
     else:
-      print 'UPDATING'
       get_db().execute('UPDATE commentary SET book = ?, chapter = ?, verse = ?, text = ? WHERE book = ? AND chapter = ? AND verse = ?',
                        (book, chapter, verse, request.form["text"], book, chapter, verse))
       get_db().commit()

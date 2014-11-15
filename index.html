@@ -8,8 +8,29 @@
     <script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/showdown/0.3.1/showdown.min.js"></script>
     <style type="text/css">
-    .verse:hover {
-      background-color: #eee;
+    body {
+      color: #333;
+      background-color: #E5E0D4;
+      font-family: Optima;
+    }
+    #soren {
+      width: 750px;
+      margin: 50px auto 150px;
+    }
+    .passageInput {
+      font-family: Optima;
+      background: none;
+      border: none;
+      font-size: 2em;
+      font-weight: bold;
+      color: #444;
+      border: 1px solid #E5E0D4; /* so that adding border on hover doesn't change layout */
+    }
+    .passageInput:hover {
+      border: 1px solid #bbb;
+    }
+    .verse:hover, .verse:hover .commentary.viewing {
+      background-color: #DAD5CA;
     }
     .passageContent {
       width: 400px;
@@ -23,9 +44,12 @@
       clear: right;
       margin-right: -350px;
       width: 300px;
+      font-family: Times;
+      font-size: 11pt;
     }
     .commentary.editing {
-      border: 1px solid #333;
+      border: none;
+      background-color: #DAD5CA;
     }
     .commentary.viewing {
       bording: None;
@@ -140,7 +164,6 @@
           };
         },
         lookupPassage: function(passageQuery) {
-          console.log("lookupPassage", passageQuery);
           $.ajax({
             url: '/passageQuery',
             data: {q: passageQuery},
@@ -170,7 +193,6 @@
                   text: ' ' + $verse.text()
                 });
               });
-              console.log('esv data', data);
               this.setState({paragraphs: paragraphs});
             }.bind(this),
             error: function(xhr, status, err) {
@@ -183,7 +205,6 @@
             // TODO pass in book+chapter
             dataType: 'json',
             success: function(data) {
-              console.log('/commentary data', data);
               this.setState({comments: data});
               this.forceUpdate(); // not sure why this is necessary
             }.bind(this),
@@ -208,7 +229,6 @@
               return verse;
             }.bind(this));
           }.bind(this));
-          console.log('paras', paras);
           return (
             <div className="bibleViewer">
               <BibleNav lookupPassage={this.lookupPassage} />
@@ -250,6 +270,10 @@
         componentWillReceiveProps: function() { this.setState(this.commentStateFromProps()); },
         handleClick: function() {
           this.setState({commentaryState: 'editing'});
+        },
+        componentDidUpdate: function() {
+          var editor = this.refs.editor;
+          if (typeof editor != 'undefined') editor.getDOMNode().focus();
         },
         stopEditingCommentary: function() {
           var text = this.refs.editor.getDOMNode().value;
@@ -308,7 +332,7 @@
         },
         render: function() {
           return (
-            <input type="text" ref="passageInput" className="passageLabel" defaultValue="Genesis 1" onKeyPress={this.handleKey} />
+            <input type="text" ref="passageInput" className="passageInput" defaultValue="Genesis 1" onKeyPress={this.handleKey} />
           );
         },
         componentDidMount: function() {

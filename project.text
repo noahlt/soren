@@ -14,16 +14,14 @@
  X edit commentary
     X in frontend, properly populate textarea
     X in db, update don't insert
- - styling
-    - font
-    - whitespace
-    - colors
-    - highlight commentary with verse
-    - navigation picker should blend in as heading
-
-publish:
- - rename to something more soli scriptura
- - post to github
+ X styling
+    X font
+    X whitespace
+    X colors
+    X highlight commentary with verse
+    X navigation picker should blend in as heading
+    X edit commentary style
+ X autofocus on edit commentary
 
 α2:
  - link to other verses from within commentary
@@ -39,6 +37,10 @@ publish:
  - show verse number on hover
  - markdown on comments
  - handle newlines in verses
+
+publish:
+ - rename to something more soli scriptura
+ - post to github
 
 cleanup:
  - make static/ dir
