@@ -5,15 +5,15 @@
     X transition from editing to reading
     X callback onblur to save commentary to backend
     X frontend post commentary to backend
- - read commentary and render side by side
+ X read commentary and render side by side
     X backend read commentary from db
     X frontend fetch commentary from backend
     X render in webapp
-    - read specific chapter's commentary
-    - read specific verse's commentary (backend capability)
- - edit commentary
+    X read specific chapter's commentary
+    X read specific verse's commentary (backend capability)
+ X edit commentary
     X in frontend, properly populate textarea
-    - in db, update don't insert
+    X in db, update don't insert
  - styling
     - font
     - whitespace
@@ -47,11 +47,13 @@ cleanup:
  - compile jsx rather than on-the-fly
  - figure out how to pass an object as a component constructor (rather than jsx attributes)
  - remove hello world react.js code
+ - in Flask can we do routing based on method? (rather than checking method inside handler)
 
 β1:
  - login with facebook
  - only show current user's comments
  - make it deployable
+ - fix SQL injection
 
 β2:
  - show friends' comments

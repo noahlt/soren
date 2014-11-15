@@ -49,19 +49,54 @@ def passage():
   # remove the DOCTYPE which for some reason breaks jQuery parsing
   return r.text.replace('<!DOCTYPE crossway-bible SYSTEM "http://www.gnpcb.org/esv/share/schemas/crossway.base.entities.dtd">', '')
 
-def label(t, *labels):
-  '''Given a tuple and a list of objects, produce a '''
+def test_int(s):
+  '''Test to see whether string s contains an int'''
+  try:
+    int(s)
+    return s
+  except ValueError:
+    return False
+
+def select_commentary(book=None, chapter=None, verse=None):
+    wherePhrases = []
+
+    if book:
+      # Danger, Will Robinson, danger! SQL injection here:
+      wherePhrases.append('book = "%s"' % (book.lower()))
+
+    if chapter and test_int(chapter):
+      wherePhrases.append('chapter = ' + chapter)
+
+    if verse and test_int(verse):
+      wherePhrases.append('verse = ' + verse)
+
+    whereClause = 'WHERE ' + ' AND '.join(wherePhrases) if len(wherePhrases) > 0 else ''
+    return query_db(' '.join(['SELECT * FROM commentary', whereClause]))
+
 
 @app.route("/commentary", methods=['GET', 'POST'])
 def commentary():
   if request.method == 'POST':
-    get_db().execute('INSERT INTO commentary VALUES(?, ?, ?, ?)',
-                     (request.form["book"], request.form["chapter"], request.form["verse"], request.form["text"]))
-    get_db().commit()
-    return 'ok'
+    book = request.form["book"].lower()
+    chapter = test_int(request.form["chapter"])
+    verse = test_int(request.form["verse"])
+
+    if len(select_commentary(book, chapter, verse)) == 0:
+      print 'INSERTING'
+      get_db().execute('INSERT INTO commentary VALUES(?, ?, ?, ?)',
+                       (book, chapter, verse, request.form["text"]))
+      get_db().commit()
+      return 'ok'
+    else:
+      print 'UPDATING'
+      get_db().execute('UPDATE commentary SET book = ?, chapter = ?, verse = ?, text = ? WHERE book = ? AND chapter = ? AND verse = ?',
+                       (book, chapter, verse, request.form["text"], book, chapter, verse))
+      get_db().commit()
+      return 'ok'
   elif request.method == 'GET':
-    print request.args.get('book')
-    results = query_db('select * from commentary')
+    results = select_commentary(book=request.args.get('book'),
+                                chapter=request.args.get('chapter'),
+                                verse=request.args.get('verse'))
     return json.dumps([dict(zip(['book', 'chapter', 'verse', 'comment'], r)) for r in results])
 
 if __name__ == "__main__":
