@@ -1,0 +1,58 @@
+α1:
+ X default passage
+ X click on verse opens input box
+ X post to save commentary
+    X transition from editing to reading
+    X callback onblur to save commentary to backend
+    X frontend post commentary to backend
+ - read commentary and render side by side
+    X backend read commentary from db
+    X frontend fetch commentary from backend
+    X render in webapp
+    - read specific chapter's commentary
+    - read specific verse's commentary (backend capability)
+ - edit commentary
+    X in frontend, properly populate textarea
+    - in db, update don't insert
+ - styling
+    - font
+    - whitespace
+    - colors
+    - highlight commentary with verse
+    - navigation picker should blend in as heading
+
+publish:
+ - rename to something more soli scriptura
+ - post to github
+
+α2:
+ - link to other verses from within commentary
+ - topic page (title, discussion)
+ - index of topic pages
+ - link to topic page from commentary
+ - show verses w/ commentary on topic page
+
+α3:
+ - "next/prev chapter" buttons when viewing entire chapter
+ - "view entire chapter" button when viewing less than a whole chapter
+ - remember last place
+ - show verse number on hover
+ - markdown on comments
+ - handle newlines in verses
+
+cleanup:
+ - make static/ dir
+ - separate js/css from html
+ - don't hardcode paths to my home dir in server.py
+ - compile jsx rather than on-the-fly
+ - figure out how to pass an object as a component constructor (rather than jsx attributes)
+ - remove hello world react.js code
+
+β1:
+ - login with facebook
+ - only show current user's comments
+ - make it deployable
+
+β2:
+ - show friends' comments
+ - allow friends to comment on topic pages

@@ -8,18 +8,27 @@
     <script src="http://code.jquery.com/jquery-1.10.0.min.js"></script>
     <script src="http://cdnjs.cloudflare.com/ajax/libs/showdown/0.3.1/showdown.min.js"></script>
     <style type="text/css">
-    .chapter-num, .verse-num {
-      font-family: sans-serif;
-      background-color: #444;
-      color: #aaa;
-      padding-left: 3px; /* hack to account for &nbsp; after verse-num */
-      /*border-right: 3px solid #fff; /* hack to add a fake space */
-      border-radius: 5px;
-      margin-right: 3px;
-      font-size: 12px;
+    .verse:hover {
+      background-color: #eee;
     }
     .passageContent {
       width: 400px;
+    }
+    .commentary.absent {
+      display: None;
+    }
+    .commentary.viewing, .commentary.editing {
+      display: block;
+      float: right;
+      clear: right;
+      margin-right: -350px;
+      width: 300px;
+    }
+    .commentary.editing {
+      border: 1px solid #333;
+    }
+    .commentary.viewing {
+      bording: None;
     }
     </style>
   </head>
@@ -28,6 +37,10 @@
     <div id="comments"></div>
     <script type="text/jsx">
       /** @jsx React.DOM */
+
+      function clone(obj) {
+        return JSON.parse(JSON.stringify(obj))
+      }
 
       var CommentList = React.createClass({
         render: function () {
@@ -122,7 +135,8 @@
       var BibleViewer = React.createClass({
         getInitialState: function() {
           return {
-            passageHtml: '<span>type a passage to look up above</span>',
+            paragraphs: [],
+            comments: []
           };
         },
         lookupPassage: function(passageQuery) {
@@ -132,61 +146,173 @@
             data: {q: passageQuery},
             dataType: 'xml',
             success: function(data) {
+              // So, we're parsing the XML here rather than on the server side because I like
+              // jQuery's monadic XML manipulation API.
               var $xml = $(data);
               $xml.find("marker").remove();
               $xml.find("heading").remove();
               $xml.find("end-paragraph").remove();
               $xml.find("footnote").remove();
               var paragraphs = [];
-              console.log($xml.find("verse-unit"));
+              var currentRef = $xml.find('surrounding-chapters current').text();
+              var currentBook = currentRef.slice(0, currentRef.lastIndexOf(" "));
+              var currentChapter = currentRef.slice(currentRef.lastIndexOf(" ")+1)
               $xml.find("verse-unit").each(function (i, verseNode) {
                 var $verse = $(verseNode);
                 if ($verse.find("begin-paragraph").length > 0 || paragraphs.length == 0) {
                   paragraphs.push([]);
                 }
-                var verse = {
-                  num: $verse.find('verse-num').remove().text(),
-                  text: $verse.text()
-                }
-                paragraphs[paragraphs.length - 1].push(verse)
-                return;
+                paragraphs[paragraphs.length - 1].push({
+                  book: currentBook,
+                  chapter: currentChapter,
+                  verse: $verse.find('verse-num').remove().text(),
+                  // removing elements sometimes means there's no space between verses, so we insert a leading space:
+                  text: ' ' + $verse.text()
+                });
               });
-              console.log(paragraphs);
-              this.setState({passageHtml: '<span>hi</span>'});
+              console.log('esv data', data);
+              this.setState({paragraphs: paragraphs});
             }.bind(this),
             error: function(xhr, status, err) {
               console.error('esv failure', this.esvApiUrl, status, err.toString());
             }.bind(this)
           });
+          $.ajax({
+            url: '/commentary',
+            method: 'GET',
+            // TODO pass in book+chapter
+            dataType: 'json',
+            success: function(data) {
+              console.log('/commentary data', data);
+              this.setState({comments: data});
+              this.forceUpdate(); // not sure why this is necessary
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error('commentary failure (get)', '/commentary', status, err.toString());
+            }
+          });
         },
         render: function() {
+          // cloning seems safer than direct manipulation.
+          var paras = clone(this.state.paragraphs).map(function(para) {
+            return para.map(function(verse) {
+              // we could make this more efficient by stepping through verses & comments together
+              // but I don't think that's necessary.
+              this.state.comments.filter(function(comment) {
+                return comment.book.toLowerCase() == verse.book.toLowerCase() &&
+                       comment.chapter == verse.chapter &&
+                       comment.verse == verse.verse;
+              }).map(function(comment) {
+                verse.comment = comment.comment;
+              });
+              return verse;
+            }.bind(this));
+          }.bind(this));
+          console.log('paras', paras);
           return (
             <div className="bibleViewer">
               <BibleNav lookupPassage={this.lookupPassage} />
-              <div className="passageContent" dangerouslySetInnerHTML={{__html: this.state.passageHtml}}></div>
+              <div className="passageContent">
+                {paras.map(function (paragraph) {
+                  return (
+                    <p>
+                      {paragraph.map(function (verse) {
+                        return (
+                          <BibleVerse text={verse.text} book={verse.book} chapter={verse.chapter} verse={verse.verse} comment={verse.comment} />
+                        );
+                      })}
+                    </p>
+                  );
+                })}
+              </div>
             </div>
           );
+        }
+      });
+
+      var BibleVerse = React.createClass({
+        // This business where I call commentStateFromProps from getInitialState and
+        // componentWillReceiveProps is, I suspect, an anti-pattern.
+        commentStateFromProps: function() {
+          if (typeof this.props.comment === 'undefined') {
+            return {
+              commentaryState: 'absent',
+              commentaryText: ''
+            };
+          } else {
+            return {
+              commentaryState: 'viewing',
+              commentaryText: this.props.comment
+            };
+          }
         },
-        componentDidUpdate: function() {
-          $(this.getDOMNode()).find('.chapter-num,.verse-num').click(function() {
-            // this is a temporary hack until we do server-side esv xml processing
-            alert("hi");
+        getInitialState: function() { return this.commentStateFromProps(); },
+        componentWillReceiveProps: function() { this.setState(this.commentStateFromProps()); },
+        handleClick: function() {
+          this.setState({commentaryState: 'editing'});
+        },
+        stopEditingCommentary: function() {
+          var text = this.refs.editor.getDOMNode().value;
+          this.setState({
+            commentaryState: 'viewing',
+            commentaryText: text
           });
+          $.ajax({
+            method: 'POST',
+            url: '/commentary',
+            data: {
+              book: this.props.book,
+              chapter: this.props.chapter,
+              verse: this.props.verse,
+              text: text
+            },
+            dataType: 'text',
+            success: function(data) {
+              console.log('successfully posted commentary!', data);
+            }.bind(this),
+            error: function(xhr, status, err) {
+              console.error('commentary failure', '/commentary', status, err.toString());
+            }.bind(this)
+          });
+        },
+        render: function() {
+          var classes = 'commentary ' + this.state.commentaryState;
+          var commentaryBox = '';
+          if (this.state.commentaryState == 'editing') {
+            commentaryBox = (
+              <textarea ref='editor' className={classes} onBlur={this.stopEditingCommentary} defaultValue={this.state.commentaryText}></textarea>
+            );
+          } else if (this.state.commentaryState == 'viewing') {
+            commentaryBox = (
+              <div className={classes}>{this.state.commentaryText}</div>
+            );
+          }
+          return (
+            <span className="verse" onClick={this.handleClick}>
+              {commentaryBox}
+              {this.props.text}
+            </span>
+          );
         }
       });
 
       var BibleNav = React.createClass({
+        navigate: function() {
+          this.props.lookupPassage(this.refs.passageInput.getDOMNode().value.trim())
+        },
         handleKey: function(e) {
           if (e.which == 13) { // 13 = enter
             e.preventDefault();
-            var passageQuery = this.refs.passageInput.getDOMNode().value.trim();
-            this.props.lookupPassage(passageQuery);
+            this.navigate();
           }
         },
         render: function() {
           return (
-            <input type="text" ref="passageInput" className="passageLabel" onKeyPress={this.handleKey} />
+            <input type="text" ref="passageInput" className="passageLabel" defaultValue="Genesis 1" onKeyPress={this.handleKey} />
           );
+        },
+        componentDidMount: function() {
+          this.navigate();
         }
       });
 
